@@ -1,0 +1,224 @@
+name: fk_pk_type_consistency
+
+connections:
+  target: { engine: bigquery }
+
+migration:
+  steps:
+    - { kind: ddl, sql: bigquery/ddl/staging.sql }
+    - { kind: ddl, sql: bigquery/ddl/ods.sql }
+    - { kind: ddl, sql: bigquery/ddl/dm.sql }
+
+suites:
+  # =========================================================================
+  # AC5: Cross-dataset FK↔PK type consistency
+  # For every documented join path, the FK column type in the referencing table
+  # matches the PK column type in the referenced table.
+  # =========================================================================
+
+  # ── Within DM: surrogate-key joins (fact→dim, agg→dim) ─────────────────
+  - pattern: schema_conformance
+    id: fk-dm-surrogate-keys
+    target_dataset: "${BUILD_DATASET}"
+    tables:
+      # --- Dimension PKs ---
+      - table: dim_agent
+        columns:
+          - { name: agent_sk, type: INT64 }
+          - { name: agent_id, type: INT64 }
+      - table: dim_client
+        columns:
+          - { name: client_sk, type: INT64 }
+          - { name: client_id, type: INT64 }
+      - table: dim_program
+        columns:
+          - { name: program_sk, type: INT64 }
+          - { name: program_id, type: INT64 }
+          - { name: client_id, type: INT64 }
+      - table: dim_queue
+        columns:
+          - { name: queue_sk, type: INT64 }
+          - { name: queue_id, type: INT64 }
+
+      # --- Fact FKs ---
+      - table: fact_interaction
+        columns:
+          - { name: client_sk, type: INT64 }
+          - { name: program_sk, type: INT64 }
+          - { name: queue_sk, type: INT64 }
+          - { name: agent_sk, type: INT64 }
+      - table: fact_agent_activity
+        columns:
+          - { name: agent_sk, type: INT64 }
+      - table: fact_queue_interval
+        columns:
+          - { name: queue_sk, type: INT64 }
+      - table: fact_csat_survey
+        columns:
+          - { name: client_sk, type: INT64 }
+          - { name: program_sk, type: INT64 }
+          - { name: agent_sk, type: INT64 }
+      - table: fact_qa_evaluation
+        columns:
+          - { name: agent_sk, type: INT64 }
+          - { name: program_sk, type: INT64 }
+      - table: fact_billing_line
+        columns:
+          - { name: client_sk, type: INT64 }
+          - { name: program_sk, type: INT64 }
+      - table: fact_adherence_daily
+        columns:
+          - { name: agent_sk, type: INT64 }
+      - table: fact_ticket
+        columns:
+          - { name: program_sk, type: INT64 }
+          - { name: assigned_agent_sk, type: INT64 }
+
+      # --- Agg table FKs (non-MV aggs) ---
+      - table: agg_program_monthly
+        columns:
+          - { name: client_sk, type: INT64 }
+          - { name: program_sk, type: INT64 }
+      - table: agg_csat_rollup_monthly
+        columns:
+          - { name: client_sk, type: INT64 }
+          - { name: program_sk, type: INT64 }
+      - table: agg_billing_monthly
+        columns:
+          - { name: client_sk, type: INT64 }
+          - { name: program_sk, type: INT64 }
+
+      # --- Agg MV FKs ---
+      - table: agg_agent_daily
+        columns:
+          - { name: agent_sk, type: INT64 }
+      - table: agg_agent_weekly
+        columns:
+          - { name: agent_sk, type: INT64 }
+      - table: agg_queue_hourly
+        columns:
+          - { name: queue_sk, type: INT64 }
+      - table: agg_site_daily
+        columns:
+          - { name: agents_active, type: INT64 }
+
+  # ── Across ODS↔DM: natural-key joins ──────────────────────────────────
+  - pattern: schema_conformance
+    id: fk-ods-dm-natural-keys
+    target_dataset: "${BUILD_DATASET}"
+    tables:
+      # DM side (PK columns)
+      - table: dim_agent
+        columns:
+          - { name: agent_id, type: INT64 }
+      - table: dim_program
+        columns:
+          - { name: program_id, type: INT64 }
+          - { name: client_id, type: INT64 }
+      - table: dim_queue
+        columns:
+          - { name: queue_id, type: INT64 }
+
+      # ODS side (FK/PK columns that must match)
+      - table: ods_agent_scd2
+        columns:
+          - { name: agent_id, type: INT64 }
+      - table: ods_program
+        columns:
+          - { name: program_id, type: INT64 }
+      - table: ods_queue
+        columns:
+          - { name: queue_id, type: INT64 }
+      - table: ods_client_acid
+        columns:
+          - { name: client_id, type: INT64 }
+
+  # ── Across Staging↔ODS: PK joins ──────────────────────────────────────
+  - pattern: schema_conformance
+    id: fk-staging-ods-pks
+    target_dataset: "${BUILD_DATASET}"
+    tables:
+      # Staging PKs
+      - table: stg_crm_client
+        columns:
+          - { name: client_id, type: INT64 }
+      - table: stg_hr_agent
+        columns:
+          - { name: agent_id, type: INT64 }
+      - table: stg_tkt_ticket
+        columns:
+          - { name: ticket_id, type: INT64 }
+      - table: stg_fin_invoice
+        columns:
+          - { name: invoice_id, type: INT64 }
+
+      # ODS merge targets (must match PK type)
+      - table: ods_client_acid
+        columns:
+          - { name: client_id, type: INT64 }
+      - table: ods_agent_acid
+        columns:
+          - { name: agent_id, type: INT64 }
+      - table: ods_ticket_acid
+        columns:
+          - { name: ticket_id, type: INT64 }
+      - table: ods_invoice_acid
+        columns:
+          - { name: invoice_id, type: INT64 }
+
+      # Delta feed PKs ↔ ODS merge target PKs
+      - table: stg_fin_timesheet_delta
+        columns:
+          - { name: timesheet_id, type: INT64 }
+      - table: ods_timesheet
+        columns:
+          - { name: timesheet_id, type: INT64 }
+
+      - table: stg_fin_payroll_adj_delta
+        columns:
+          - { name: adjustment_id, type: INT64 }
+      - table: ods_payroll_adjustment
+        columns:
+          - { name: adjustment_id, type: INT64 }
+
+      - table: stg_crm_sla_credit_delta
+        columns:
+          - { name: sla_credit_id, type: INT64 }
+      - table: ods_sla_credit
+        columns:
+          - { name: sla_credit_id, type: INT64 }
+
+      - table: stg_tel_callback_request_delta
+        columns:
+          - { name: callback_id, type: INT64 }
+      - table: ods_callback_request
+        columns:
+          - { name: callback_id, type: INT64 }
+
+      - table: stg_wfm_shift_swap_delta
+        columns:
+          - { name: swap_id, type: INT64 }
+      - table: ods_shift_swap
+        columns:
+          - { name: swap_id, type: INT64 }
+
+      - table: stg_tkt_worklog_delta
+        columns:
+          - { name: worklog_id, type: INT64 }
+      - table: ods_ticket_worklog
+        columns:
+          - { name: worklog_id, type: INT64 }
+
+      - table: stg_hr_attrition_event_delta
+        columns:
+          - { name: attrition_event_id, type: INT64 }
+      - table: ods_attrition_event
+        columns:
+          - { name: attrition_event_id, type: INT64 }
+
+      - table: stg_fin_rate_card_change_delta
+        columns:
+          - { name: rate_change_id, type: INT64 }
+      - table: ods_rate_card
+        columns:
+          - { name: rate_card_id, type: INT64 }

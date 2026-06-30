@@ -1,0 +1,518 @@
+name: partition_cluster_expiration
+
+connections:
+  target: { engine: bigquery }
+
+migration:
+  steps:
+    - { kind: ddl, sql: bigquery/ddl/staging.sql }
+    - { kind: ddl, sql: bigquery/ddl/ods.sql }
+    - { kind: ddl, sql: bigquery/ddl/dm.sql }
+
+suites:
+  - pattern: schema_conformance
+    id: partition-cluster-expiration
+    target_dataset: "${BUILD_DATASET}"
+    tables:
+      - table: stg_crm_client
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: client_id, type: INT64 }
+      - table: stg_crm_client_contact
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: contact_id, type: INT64 }
+      - table: stg_crm_program
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: program_id, type: INT64 }
+      - table: stg_crm_contract
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: contract_id, type: INT64 }
+      - table: stg_crm_contract_line
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: contract_line_id, type: INT64 }
+      - table: stg_crm_sla_target
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: sla_target_id, type: INT64 }
+      - table: stg_hr_agent
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: agent_id, type: INT64 }
+      - table: stg_hr_org_unit
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: org_unit_id, type: INT64 }
+      - table: stg_hr_employment_event
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: event_id, type: INT64 }
+      - table: stg_hr_skill
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: skill_id, type: INT64 }
+      - table: stg_hr_agent_skill
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: agent_skill_id, type: INT64 }
+      - table: stg_wfm_shift
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: shift_id, type: INT64 }
+      - table: stg_wfm_schedule
+        partition_by: load_date
+        cluster_by: [site_code]
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: schedule_id, type: INT64 }
+      - table: stg_wfm_adherence_event
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: adherence_event_id, type: INT64 }
+      - table: stg_wfm_forecast
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: forecast_id, type: INT64 }
+      - table: stg_wfm_timeoff_request
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: timeoff_id, type: INT64 }
+      - table: stg_tel_call
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: call_id, type: INT64 }
+      - table: stg_tel_call_segment
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: segment_id, type: INT64 }
+      - table: stg_tel_queue
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: queue_id, type: INT64 }
+      - table: stg_tel_agent_state_event
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: state_event_id, type: INT64 }
+      - table: stg_tel_disposition_code
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: disposition_code, type: STRING }
+      - table: stg_tkt_ticket
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: ticket_id, type: INT64 }
+      - table: stg_tkt_ticket_event
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: ticket_event_id, type: INT64 }
+      - table: stg_tkt_category
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: category_id, type: INT64 }
+      - table: stg_fin_invoice
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: invoice_id, type: INT64 }
+      - table: stg_fin_invoice_line
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: invoice_line_id, type: INT64 }
+      - table: stg_fin_rate_card
+        partition_by: load_date
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: rate_card_id, type: INT64 }
+      - table: stg_fin_timesheet_delta
+        partition_by: extract_ts
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: timesheet_id, type: INT64 }
+      - table: stg_fin_payroll_adj_delta
+        partition_by: extract_ts
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: adjustment_id, type: INT64 }
+      - table: stg_crm_sla_credit_delta
+        partition_by: extract_ts
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: sla_credit_id, type: INT64 }
+      - table: stg_tel_callback_request_delta
+        partition_by: extract_ts
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: callback_id, type: INT64 }
+      - table: stg_wfm_shift_swap_delta
+        partition_by: extract_ts
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: swap_id, type: INT64 }
+      - table: stg_tkt_worklog_delta
+        partition_by: extract_ts
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: worklog_id, type: INT64 }
+      - table: stg_hr_attrition_event_delta
+        partition_by: extract_ts
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: attrition_event_id, type: INT64 }
+      - table: stg_fin_rate_card_change_delta
+        partition_by: extract_ts
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: rate_change_id, type: INT64 }
+      - table: stg_file_interaction_export
+        partition_by: feed_date
+        cluster_by: [client_code]
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: interaction_ref, type: STRING }
+      - table: stg_file_survey_csat
+        partition_by: feed_date
+        cluster_by: [client_code]
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: survey_id, type: STRING }
+      - table: stg_file_qa_forms
+        partition_by: feed_date
+        cluster_by: [client_code]
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: qa_form_id, type: STRING }
+      - table: stg_file_ivr_logs
+        partition_by: feed_date
+        cluster_by: [client_code]
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: event_ms, type: INT64 ') }
+      - table: stg_file_chat_transcripts
+        partition_by: feed_date
+        cluster_by: [client_code]
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: chat_ref, type: STRING }
+      - table: stg_file_roster
+        partition_by: feed_date
+        cluster_by: [client_code]
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: employee_no, type: STRING }
+      - table: stg_file_telco_invoice
+        partition_by: feed_date
+        cluster_by: [client_code]
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: telco_invoice_id, type: STRING }
+      - table: stg_file_dialer_result
+        partition_by: feed_date
+        cluster_by: [client_code]
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: attempt_id, type: STRING }
+      - table: stg_file_email_interaction
+        partition_by: feed_date
+        cluster_by: [client_code]
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: email_ref, type: STRING }
+      - table: stg_file_speech_analytics
+        partition_by: feed_date
+        cluster_by: [client_code]
+        table_options:
+          partition_expiration_days: 90
+        columns:
+          - { name: recording_id, type: STRING }
+      - table: ods_program
+        partition_by: snapshot_date
+        columns:
+          - { name: program_id, type: INT64 }
+      - table: ods_contract
+        partition_by: snapshot_date
+        columns:
+          - { name: contract_id, type: INT64 }
+      - table: ods_contract_line
+        partition_by: snapshot_date
+        columns:
+          - { name: contract_line_id, type: INT64 }
+      - table: ods_org_unit
+        partition_by: snapshot_date
+        columns:
+          - { name: org_unit_id, type: INT64 }
+      - table: ods_queue
+        partition_by: snapshot_date
+        columns:
+          - { name: queue_id, type: INT64 }
+      - table: ods_schedule
+        partition_by: sched_date
+        columns:
+          - { name: schedule_id, type: INT64 }
+      - table: ods_adherence_event
+        partition_by: event_date
+        columns:
+          - { name: adherence_event_id, type: INT64 }
+      - table: ods_call
+        partition_by: call_date
+        columns:
+          - { name: call_id, type: INT64 }
+      - table: ods_ivr_session
+        partition_by: event_date
+        columns:
+          - { name: session_ref, type: STRING }
+      - table: ods_chat_session
+        partition_by: event_date
+        columns:
+          - { name: chat_ref, type: STRING }
+      - table: ods_email_interaction
+        partition_by: event_date
+        columns:
+          - { name: email_ref, type: STRING }
+      - table: ods_survey_response
+        partition_by: event_date
+        columns:
+          - { name: survey_id, type: STRING }
+      - table: ods_qa_evaluation
+        partition_by: event_date
+        columns:
+          - { name: qa_form_id, type: STRING }
+      - table: ods_interaction
+        partition_by: event_date
+        columns:
+          - { name: interaction_id, type: STRING }
+      - table: ods_dialer_attempt
+        partition_by: event_date
+        columns:
+          - { name: attempt_id, type: STRING }
+      - table: ods_timesheet
+        partition_by: work_month
+        columns:
+          - { name: timesheet_id, type: INT64 }
+      - table: ods_payroll_adjustment
+        partition_by: period_month
+        columns:
+          - { name: adjustment_id, type: INT64 }
+      - table: ods_sla_credit
+        partition_by: period_month
+        columns:
+          - { name: sla_credit_id, type: INT64 }
+      - table: ods_callback_request
+        partition_by: event_date
+        columns:
+          - { name: callback_id, type: INT64 }
+      - table: ods_shift_swap
+        partition_by: swap_month
+        columns:
+          - { name: swap_id, type: INT64 }
+      - table: ods_ticket_worklog
+        partition_by: event_date
+        columns:
+          - { name: worklog_id, type: INT64 }
+      - table: ods_attrition_event
+        partition_by: event_month
+        columns:
+          - { name: attrition_event_id, type: INT64 }
+      - table: ods_rate_card
+        partition_by: snapshot_date
+        columns:
+          - { name: rate_card_id, type: INT64 }
+      - table: ods_agent_scd2
+        partition_by: eff_from_ts
+        cluster_by: [agent_id]
+        columns:
+          - { name: agent_history_id, type: STRING }
+      - table: ods_agent_skill_scd2
+        partition_by: eff_from_ts
+        columns:
+          - { name: agent_skill_history_id, type: STRING }
+      - table: ods_agent_assignment_scd2
+        partition_by: eff_from_ts
+        columns:
+          - { name: assignment_history_id, type: STRING }
+      - table: ods_client_acid
+        cluster_by: [client_id]
+        columns:
+          - { name: client_id, type: INT64 }
+      - table: ods_agent_acid
+        cluster_by: [agent_id]
+        columns:
+          - { name: agent_id, type: INT64 }
+      - table: ods_ticket_acid
+        cluster_by: [ticket_id]
+        columns:
+          - { name: ticket_id, type: INT64 }
+      - table: ods_invoice_acid
+        cluster_by: [invoice_id]
+        columns:
+          - { name: invoice_id, type: INT64 }
+      - table: dim_date
+        columns:
+          - { name: date_key, type: INT64 }
+      - table: dim_agent
+        columns:
+          - { name: agent_sk, type: INT64 }
+      - table: dim_client
+        columns:
+          - { name: client_sk, type: INT64 }
+      - table: dim_program
+        columns:
+          - { name: program_sk, type: INT64 }
+      - table: dim_queue
+        columns:
+          - { name: queue_sk, type: INT64 }
+      - table: dim_site
+        columns:
+          - { name: site_sk, type: INT64 }
+      - table: dim_shift
+        columns:
+          - { name: shift_sk, type: INT64 }
+      - table: dim_org
+        columns:
+          - { name: org_sk, type: INT64 }
+      - table: dim_disposition
+        columns:
+          - { name: disposition_sk, type: INT64 }
+      - table: fact_interaction
+        partition_by: event_date
+        cluster_by: [channel, agent_sk, client_sk]
+        columns:
+          - { name: interaction_id, type: STRING }
+      - table: fact_agent_activity
+        partition_by: event_date
+        cluster_by: [agent_sk, state_code]
+        columns:
+          - { name: agent_sk, type: INT64 }
+      - table: fact_queue_interval
+        partition_by: event_date
+        cluster_by: [queue_sk]
+        columns:
+          - { name: queue_sk, type: INT64 }
+      - table: fact_csat_survey
+        partition_by: event_date
+        cluster_by: [program_sk, agent_sk]
+        columns:
+          - { name: survey_id, type: STRING }
+      - table: fact_qa_evaluation
+        partition_by: event_date
+        columns:
+          - { name: qa_form_id, type: STRING }
+      - table: fact_billing_line
+        partition_by: period_month_date
+        cluster_by: [client_sk, program_sk]
+        columns:
+          - { name: invoice_line_id, type: INT64 }
+      - table: fact_adherence_daily
+        partition_by: event_date
+        cluster_by: [agent_sk]
+        columns:
+          - { name: agent_sk, type: INT64 }
+      - table: fact_ticket
+        partition_by: event_date
+        cluster_by: [program_sk, status]
+        columns:
+          - { name: ticket_id, type: INT64 }
+      - table: fact_ivr_path
+        partition_by: event_date
+        columns:
+          - { name: session_ref, type: STRING }
+      - table: agg_program_monthly
+        partition_by: period_month_date
+        columns:
+          - { name: client_sk, type: INT64 }
+      - table: agg_csat_rollup_monthly
+        partition_by: period_month_date
+        columns:
+          - { name: client_sk, type: INT64 }
+      - table: agg_billing_monthly
+        partition_by: period_month_date
+        columns:
+          - { name: client_sk, type: INT64 }
+      - table: agg_agent_daily
+        partition_by: event_date
+        cluster_by: [agent_sk, site_code]
+        columns:
+          - { name: agent_sk, type: INT64 }
+      - table: agg_agent_weekly
+        partition_by: week_start_date
+        columns:
+          - { name: agent_sk, type: INT64 }
+      - table: agg_queue_hourly
+        partition_by: event_date
+        cluster_by: [queue_sk, hour_of_day]
+        columns:
+          - { name: queue_sk, type: INT64 }
+      - table: agg_site_daily
+        partition_by: event_date
+        columns:
+          - { name: site_code, type: STRING }
