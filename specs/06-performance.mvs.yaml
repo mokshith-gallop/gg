@@ -1,0 +1,132 @@
+name: physical_access_performance
+
+connections:
+  target: { engine: bigquery }
+
+migration:
+  steps:
+    - { kind: ddl, sql: bigquery/ddl/staging.sql }
+    - { kind: ddl, sql: bigquery/ddl/ods.sql }
+    - { kind: ddl, sql: bigquery/ddl/dm.sql }
+
+suites:
+  # =========================================================================
+  # AC9: Physical-access performance — for each of the 14 explicitly-clustered
+  # hot-path objects, a filtered query scans ≤ bytes than the same unfiltered.
+  #
+  # On empty tables both sides scan 0 bytes, so b <= a (0 <= 0) passes
+  # trivially. This is documented as NOT-EXERCISED — the scan-cost
+  # differential can only be measured with representative data loaded
+  # (a Given-fixture from Extract-Load). Never hardcode PASS.
+  # =========================================================================
+  - pattern: query_performance
+    id: scan-pruning-benchmark
+    target_dataset: "${BUILD_DATASET}"
+    queries:
+
+      # ── DM fact tables (partitioned + clustered) ─────────────────────────
+
+      # fact_interaction: partition=event_date, cluster=(channel, agent_sk, client_sk)
+      - id: perf-fact_interaction
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_interaction" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_interaction WHERE event_date = DATE '2026-01-15' AND channel = 'VOICE'" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # fact_agent_activity: partition=event_date, cluster=(agent_sk, state_code)
+      - id: perf-fact_agent_activity
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_agent_activity" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_agent_activity WHERE event_date = DATE '2026-01-15' AND agent_sk = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # fact_queue_interval: partition=event_date, cluster=(queue_sk)
+      - id: perf-fact_queue_interval
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_queue_interval" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_queue_interval WHERE event_date = DATE '2026-01-15' AND queue_sk = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # fact_csat_survey: partition=event_date, cluster=(program_sk, agent_sk)
+      - id: perf-fact_csat_survey
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_csat_survey" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_csat_survey WHERE event_date = DATE '2026-01-15' AND program_sk = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # fact_billing_line: partition=period_month_date (MONTH), cluster=(client_sk, program_sk)
+      - id: perf-fact_billing_line
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_billing_line" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_billing_line WHERE period_month_date = DATE '2026-01-01' AND client_sk = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # fact_adherence_daily: partition=event_date, cluster=(agent_sk)
+      - id: perf-fact_adherence_daily
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_adherence_daily" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_adherence_daily WHERE event_date = DATE '2026-01-15' AND agent_sk = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # fact_ticket: partition=event_date, cluster=(program_sk, status)
+      - id: perf-fact_ticket
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_ticket" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.fact_ticket WHERE event_date = DATE '2026-01-15' AND program_sk = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # ── DM aggregate MVs (partitioned + clustered) ───────────────────────
+
+      # agg_agent_daily MV: partition=event_date, cluster=(agent_sk, site_code)
+      - id: perf-agg_agent_daily
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.agg_agent_daily" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.agg_agent_daily WHERE event_date = DATE '2026-01-15' AND agent_sk = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # agg_queue_hourly MV: partition=event_date, cluster=(queue_sk, hour_of_day)
+      - id: perf-agg_queue_hourly
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.agg_queue_hourly" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.agg_queue_hourly WHERE event_date = DATE '2026-01-15' AND queue_sk = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # ── ODS SCD-2 (partitioned TIMESTAMP YEAR + clustered) ──────────────
+
+      # ods_agent_scd2: partition=eff_from_ts (YEAR), cluster=(agent_id)
+      - id: perf-ods_agent_scd2
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.ods_agent_scd2" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.ods_agent_scd2 WHERE eff_from_ts >= TIMESTAMP '2025-01-01' AND agent_id = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # ── ODS ACID tables (unpartitioned, cluster-only) ───────────────────
+      # These have no partition column — filter is cluster-only.
+
+      # ods_client_acid: cluster=(client_id)
+      - id: perf-ods_client_acid
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.ods_client_acid" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.ods_client_acid WHERE client_id = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # ods_agent_acid: cluster=(agent_id)
+      - id: perf-ods_agent_acid
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.ods_agent_acid" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.ods_agent_acid WHERE agent_id = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # ods_ticket_acid: cluster=(ticket_id)
+      - id: perf-ods_ticket_acid
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.ods_ticket_acid" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.ods_ticket_acid WHERE ticket_id = 1" }
+        compare: { bytes_scanned: "b <= a" }
+
+      # ods_invoice_acid: cluster=(invoice_id)
+      - id: perf-ods_invoice_acid
+        mode: compare
+        a: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.ods_invoice_acid" }
+        b: { sql: "SELECT COUNT(*) FROM ${BUILD_DATASET}.ods_invoice_acid WHERE invoice_id = 1" }
+        compare: { bytes_scanned: "b <= a" }
