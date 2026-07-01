@@ -334,8 +334,8 @@ SELECT
   SUM(CAST(0 AS NUMERIC))                                                     AS adherence_pct,
   SUM(CAST(0 AS NUMERIC))                                                     AS occupancy_pct,
   a.event_date
-FROM fact_agent_activity a
-INNER JOIN dim_agent d ON a.agent_sk = d.agent_sk
+FROM ${BUILD_DATASET}.fact_agent_activity a
+INNER JOIN ${BUILD_DATASET}.dim_agent d ON a.agent_sk = d.agent_sk
 GROUP BY a.agent_sk, d.site_code, a.event_date;
 
 -- MV 2: agg_agent_weekly — weekly rollup of agent activity
@@ -358,8 +358,8 @@ SELECT
   CAST(0 AS NUMERIC)                                                          AS adherence_pct,
   CAST(0 AS NUMERIC)                                                          AS occupancy_pct,
   DATE_TRUNC(a.event_date, ISOWEEK)                                           AS week_start_date
-FROM fact_agent_activity a
-INNER JOIN dim_agent d ON a.agent_sk = d.agent_sk
+FROM ${BUILD_DATASET}.fact_agent_activity a
+INNER JOIN ${BUILD_DATASET}.dim_agent d ON a.agent_sk = d.agent_sk
 GROUP BY a.agent_sk, d.site_code, DATE_TRUNC(a.event_date, ISOWEEK);
 
 -- MV 3: agg_queue_hourly — hourly queue-interval aggregation
@@ -380,7 +380,7 @@ SELECT
   SUM(CAST(0 AS INT64))                                                       AS forecast_volume,
   SUM(CAST(0 AS NUMERIC))                                                     AS volume_variance_pct,
   event_date
-FROM fact_queue_interval
+FROM ${BUILD_DATASET}.fact_queue_interval
 GROUP BY queue_sk, EXTRACT(HOUR FROM interval_start_ts), event_date;
 
 -- MV 4: agg_site_daily — site-level daily aggregation
@@ -397,6 +397,6 @@ SELECT
   SUM(CAST(0 AS NUMERIC))                                                     AS sl_pct,
   SUM(CAST(0 AS NUMERIC))                                                     AS adherence_pct,
   a.event_date
-FROM fact_agent_activity a
-INNER JOIN dim_agent d ON a.agent_sk = d.agent_sk
+FROM ${BUILD_DATASET}.fact_agent_activity a
+INNER JOIN ${BUILD_DATASET}.dim_agent d ON a.agent_sk = d.agent_sk
 GROUP BY d.site_code, a.event_date;
